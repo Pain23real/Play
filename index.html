@@ -7,14 +7,38 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="top-bar">
+        <button id="leaderboardBtn">Таблица лидеров</button>
+    </div>
+    <div id="nameMenu" class="menu-overlay">
+        <h1>Введите ваш ник</h1>
+        <input type="text" id="playerNameInput" placeholder="Ваш ник" maxlength="16">
+        <button id="saveNameBtn">Сохранить ник</button>
+    </div>
     <div class="game-container">
+        <button id="startBtn" style="display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:20;">Start</button>
         <canvas id="gameCanvas"></canvas>
         <div class="score">Очки: <span id="scoreValue">0</span></div>
-        <button id="leaderboardBtn">Таблица лидеров</button>
+        <div id="pauseOverlay" class="menu-overlay" style="display:none;">
+            <h1>Пауза</h1>
+            <button id="resumeBtn">Продолжить</button>
+        </div>
     </div>
     <div id="leaderboard" class="hidden">
         <h2>Таблица лидеров</h2>
-        <div id="leaderboardList"></div>
+        <div class="leaderboard-table-wrapper">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Место</th>
+                        <th>Ник</th>
+                        <th>Очки</th>
+                        <th>Категория</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardList"></tbody>
+            </table>
+        </div>
         <button id="closeLeaderboard">Закрыть</button>
     </div>
     <script src="game.js"></script>

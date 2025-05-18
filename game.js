@@ -14,16 +14,18 @@ canvas.height = 600;
 let score = 0;
 let gameOver = false;
 let cameraY = 0; // Добавляем переменную для камеры
+let playerName = localStorage.getItem('playerName') || '';
+let gameStarted = false;
+let paused = false;
 
-// Путь к SVG-картинке для персонажа
-const playerImgSrc = "ARCIUM_Primary-Icon_light.svg";
+// Загружаем изображение для персонажа
 const playerImg = new Image();
-playerImg.src = playerImgSrc;
+playerImg.src = 'ARCIUM_Primary-Icon_light.svg'; // SVG-картинка персонажа
 
 // Класс для игрока
 class Player {
     constructor() {
-        this.width = 50;
+        this.width = 50; // Размер под SVG
         this.height = 50;
         this.x = canvas.width / 2 - this.width / 2;
         this.y = canvas.height - this.height;
@@ -87,7 +89,7 @@ class Platform {
         this.height = 20;
         this.x = x;
         this.y = y;
-        this.isCurrent = false; // Добавляем флаг текущей платформы
+        this.isCurrent = false;
     }
 
     draw() {
@@ -98,6 +100,16 @@ class Platform {
         }
         ctx.fillStyle = '#6b3fd9';
         ctx.fillRect(this.x, this.y - cameraY, this.width, this.height);
+
+        // Текст на платформе по категориям
+        let text = getCategory(score);
+        if (text) {
+            ctx.fillStyle = '#fff';
+            ctx.font = (text.length > 15 ? 'bold 10px Arial' : 'bold 16px Arial');
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, this.x + this.width / 2, this.y - cameraY + this.height / 2);
+        }
     }
 }
 
@@ -110,13 +122,12 @@ let platforms = [];
 // Создаем начальные платформы
 function createInitialPlatforms() {
     platforms = [];
-    // Добавляем начальную платформу
+    // Стартовая платформа
     platforms.push(new Platform(canvas.width / 2 - 50, canvas.height - 100));
-    
-    // Добавляем больше случайных платформ
-    for (let i = 0; i < 10; i++) { // Увеличиваем количество начальных платформ
+    // Остальные платформы выше, с шагом 80px
+    for (let i = 0; i < 14; i++) {
         const x = Math.random() * (canvas.width - 100);
-        const y = canvas.height - 200 - i * 80; // Уменьшаем расстояние между платформами
+        const y = canvas.height - 200 - i * 80;
         platforms.push(new Platform(x, y));
     }
 }
@@ -151,7 +162,7 @@ function checkCollisions() {
 
             // Увеличиваем счет только если поднялись на платформу выше
             if (platform.y < player.lastPlatformY) {
-                score += 10;
+                score += 100;
                 scoreElement.textContent = score;
                 player.lastPlatformY = platform.y;
             }
@@ -161,6 +172,7 @@ function checkCollisions() {
 
 // Обработка клавиш
 document.addEventListener('keydown', (event) => {
+    if (!isGameActive()) return;
     switch(event.code) {
         case 'KeyA':
             player.moveLeft();
@@ -172,6 +184,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.addEventListener('keyup', (event) => {
+    if (!isGameActive()) return;
     if (event.code === 'KeyA' || event.code === 'KeyD') {
         player.stop();
     }
@@ -181,32 +194,122 @@ document.addEventListener('keyup', (event) => {
 leaderboardBtn.addEventListener('click', () => {
     leaderboard.classList.remove('hidden');
     updateLeaderboard();
+    paused = true;
+    showPauseOverlay();
 });
 
 closeLeaderboard.addEventListener('click', () => {
     leaderboard.classList.add('hidden');
+    paused = false;
+    hidePauseOverlay();
 });
 
 // Обновление таблицы лидеров
 function updateLeaderboard() {
-    const scores = JSON.parse(localStorage.getItem('scores') || '[]');
-    scores.sort((a, b) => b - a);
-    
-    leaderboardList.innerHTML = scores
-        .slice(0, 10)
-        .map((score, index) => `<div>${index + 1}. ${score} очков</div>`)
-        .join('');
+    let records = JSON.parse(localStorage.getItem('records') || '[]');
+    // Сортируем по убыванию очков
+    records.sort((a, b) => b.score - a.score);
+    // Формируем строки таблицы
+    leaderboardList.innerHTML = records.map((rec, i) =>
+        `<tr><td>${i + 1}</td><td>${rec.name}</td><td>${rec.score}</td><td>${getCategory(rec.score)}</td></tr>`
+    ).join('');
 }
 
 // Сохранение счета
 function saveScore() {
-    const scores = JSON.parse(localStorage.getItem('scores') || '[]');
-    scores.push(score);
-    localStorage.setItem('scores', JSON.stringify(scores));
+    let records = JSON.parse(localStorage.getItem('records') || '[]');
+    // Проверяем, есть ли уже запись для этого ника
+    const idx = records.findIndex(r => r.name === playerName);
+    if (idx === -1) {
+        // Нет записи — добавляем
+        records.push({ name: playerName, score });
+    } else if (score > records[idx].score) {
+        // Есть запись, но побит рекорд — обновляем
+        records[idx].score = score;
+    } // иначе не обновляем
+    localStorage.setItem('records', JSON.stringify(records));
 }
+
+function showNameMenu() {
+    document.getElementById('nameMenu').style.display = 'flex';
+    document.getElementById('startOverlay').style.display = 'none';
+    document.querySelector('.game-container').style.filter = 'blur(2px)';
+    document.getElementById('playerNameInput').value = playerName;
+    document.getElementById('playerNameInput').focus();
+}
+function hideNameMenu() {
+    document.getElementById('nameMenu').style.display = 'none';
+}
+function showStartBtn() {
+    document.getElementById('startBtn').style.display = 'inline-block';
+}
+function hideStartBtn() {
+    document.getElementById('startBtn').style.display = 'none';
+    document.querySelector('.game-container').style.filter = '';
+}
+function saveName() {
+    console.log('saveName вызвана');
+    const input = document.getElementById('playerNameInput').value.trim();
+    if (!input) return;
+    playerName = input;
+    localStorage.setItem('playerName', playerName);
+    document.getElementById('nameMenu').style.display = 'none';
+    document.querySelector('.game-container').style.filter = '';
+    document.getElementById('startBtn').style.display = 'inline-block';
+}
+function startGame() {
+    hideStartBtn();
+    document.querySelector('.game-container').style.filter = '';
+    gameStarted = true;
+}
+function isGameActive() { return gameStarted && !paused; }
+
+function showPauseOverlay() {
+    document.getElementById('pauseOverlay').style.display = 'flex';
+}
+function hidePauseOverlay() {
+    document.getElementById('pauseOverlay').style.display = 'none';
+}
+function togglePause() {
+    if (!gameStarted) return;
+    paused = !paused;
+    if (paused) {
+        showPauseOverlay();
+    } else {
+        hidePauseOverlay();
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    if (!playerName) {
+        showNameMenu();
+    } else {
+        showStartBtn();
+    }
+    document.getElementById('saveNameBtn').onclick = saveName;
+    document.getElementById('playerNameInput').onkeydown = e => {
+        if (e.key === 'Enter') saveName();
+    };
+    document.getElementById('startBtn').onclick = startGame;
+    document.getElementById('resumeBtn').onclick = () => { paused = false; hidePauseOverlay(); };
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Escape') {
+            paused = !paused;
+            if (paused) {
+                showPauseOverlay();
+            } else {
+                hidePauseOverlay();
+            }
+        }
+    });
+});
 
 // Игровой цикл
 function gameLoop() {
+    if (!isGameActive()) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Обновляем позицию камеры
@@ -217,7 +320,7 @@ function gameLoop() {
     player.update();
     player.draw();
     
-    // Удаляем платформы, которые находятся слишком низко (за пределами экрана снизу)
+    // Удаляем платформы, которые ушли за низ экрана
     platforms = platforms.filter(platform => platform.y < cameraY + canvas.height);
 
     // Генерируем новые платформы, если их меньше 15
@@ -252,4 +355,15 @@ function gameLoop() {
 
 // Запуск игры
 createInitialPlatforms();
-gameLoop(); 
+gameLoop();
+
+function getCategory(score) {
+    if (score < 500) return 'Aprove?';
+    if (score < 1000) return 'Gmpc';
+    if (score < 1500) return 'Arcian';
+    if (score < 2000) return 'PARASOL ☂️';
+    if (score < 2500) return 'Loosty GM';
+    if (score < 3000) return 'Well you a monster';
+    if (score < 3500) return 'A BOT?';
+    return 'LEGEND';
+} 

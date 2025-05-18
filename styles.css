@@ -42,6 +42,7 @@ canvas {
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.3s;
+    margin-right: 60px;
 }
 
 #leaderboardBtn:hover {
@@ -59,6 +60,7 @@ canvas {
     color: white;
     text-align: center;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
 }
 
 #leaderboard.hidden {
@@ -83,4 +85,186 @@ canvas {
 
 #closeLeaderboard:hover {
     background-color: #6b3fd9;
+}
+
+.top-bar {
+    position: absolute;
+    top: 20px;
+    right: 40px;
+    display: flex;
+    align-items: flex-start;
+    flex-direction: row-reverse;
+    z-index: 10;
+    gap: 0;
+}
+
+#playerNameDisplay {
+    color: #fff;
+    font-size: 18px;
+    background: rgba(0,0,0,0.1);
+    padding: 6px 16px;
+    border-radius: 6px;
+    margin-left: 0;
+    margin-top: 16px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: visible;
+    max-width: none;
+}
+
+#leaderboardBtn {
+    flex-shrink: 0;
+    margin-right: 24px;
+    min-width: 150px;
+}
+
+.menu-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(45,27,77,0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.menu-overlay h1 {
+    color: #fff;
+    margin-bottom: 24px;
+}
+
+#playerNameInput {
+    font-size: 18px;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    margin-bottom: 16px;
+    width: 220px;
+    text-align: center;
+}
+
+#startBtn {
+    font-size: 16px;
+    padding: 8px 24px;
+    background: #8a4fff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#startBtn:hover {
+    background: #6b3fd9;
+}
+
+.menu-overlay p {
+    color: #ccc;
+    margin-top: 0;
+}
+
+#nameMenu {
+    z-index: 1000;
+}
+
+#saveNameBtn {
+    font-size: 18px;
+    padding: 10px 30px;
+    background: #8a4fff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background 0.2s;
+}
+
+#saveNameBtn:hover {
+    background: #6b3fd9;
+}
+
+#startOverlay {
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#startBtn {
+    font-size: 32px;
+    padding: 20px 60px;
+    background: #8a4fff;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#startBtn:hover {
+    background: #6b3fd9;
+}
+
+#pauseOverlay {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#pauseOverlay h1 {
+    color: #fff;
+    margin-bottom: 24px;
+}
+
+#resumeBtn {
+    font-size: 18px;
+    padding: 10px 30px;
+    background: #8a4fff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background 0.2s;
+}
+
+#resumeBtn:hover {
+    background: #6b3fd9;
+}
+
+.leaderboard-table-wrapper {
+    max-height: 350px;
+    overflow-y: auto;
+    margin: 20px 0;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.08);
+}
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+    background: transparent;
+}
+.leaderboard-table th, .leaderboard-table td {
+    padding: 10px 18px;
+    text-align: center;
+}
+.leaderboard-table th {
+    background: #8a4fff;
+    color: #fff;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.leaderboard-table tr:nth-child(even) {
+    background: rgba(138, 79, 255, 0.08);
+}
+.leaderboard-table tr:nth-child(odd) {
+    background: rgba(0,0,0,0.04);
 } 
