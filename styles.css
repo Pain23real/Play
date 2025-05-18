@@ -1,0 +1,86 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #2d1b4d;
+    font-family: Arial, sans-serif;
+}
+
+.game-container {
+    position: relative;
+    width: 800px;
+    height: 600px;
+}
+
+canvas {
+    background-color: #4a2b7a;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.score {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #fff;
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#leaderboardBtn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: #8a4fff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#leaderboardBtn:hover {
+    background-color: #6b3fd9;
+}
+
+#leaderboard {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #4a2b7a;
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+#leaderboard.hidden {
+    display: none;
+}
+
+#leaderboardList {
+    margin: 20px 0;
+    text-align: left;
+}
+
+#closeLeaderboard {
+    padding: 10px 20px;
+    background-color: #8a4fff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+#closeLeaderboard:hover {
+    background-color: #6b3fd9;
+} 
