@@ -231,11 +231,16 @@ function saveScore() {
 }
 
 function showNameMenu() {
-    document.getElementById('nameMenu').style.display = 'flex';
-    document.getElementById('startOverlay').style.display = 'none';
-    document.querySelector('.game-container').style.filter = 'blur(2px)';
-    document.getElementById('playerNameInput').value = playerName;
-    document.getElementById('playerNameInput').focus();
+    const nameMenu = document.getElementById('nameMenu');
+    if (nameMenu) nameMenu.style.display = 'flex';
+    // document.getElementById('startOverlay').style.display = 'none';
+    const gameContainer = document.querySelector('.game-container');
+    if (gameContainer) gameContainer.style.filter = 'blur(2px)';
+    const playerNameInput = document.getElementById('playerNameInput');
+    if (playerNameInput) {
+        playerNameInput.value = playerName;
+        playerNameInput.focus();
+    }
 }
 function hideNameMenu() {
     document.getElementById('nameMenu').style.display = 'none';
