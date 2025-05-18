@@ -16,7 +16,7 @@ let gameOver = false;
 let cameraY = 0; // Добавляем переменную для камеры
 
 // Путь к SVG-картинке для персонажа
-const playerImgSrc = "Эмблема/ARCIUM_Primary-Icon_light.svg";
+const playerImgSrc = "ARCIUM_Primary-Icon_light.svg";
 const playerImg = new Image();
 playerImg.src = playerImgSrc;
 
