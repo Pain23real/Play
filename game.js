@@ -46,9 +46,9 @@ class Player {
         this.gravity = 0.1; // Уменьшаем гравитацию для более медленного движения вверх-вниз
         this.speed = baseSpeed; // Используем глобальную базовую скорость
         this.lastPlatformY = canvas.height - this.height;
-        this.jumpForce = -10; // Возвращаем прежнюю высоту прыжка
+        this.jumpForce = -9.5; // Настраиваем базовую высоту прыжка
         this.currentPlatform = null;
-        this.movementMultiplier = 1.5; // Множитель для более резкого движения
+        this.movementMultiplier = 1.2; // Уменьшенный множитель для более плавного движения
     }
 
     draw() {
@@ -158,11 +158,11 @@ class Platform {
         // Если зонтик сломан, рисуем "трещины" в виде зигзагов
         if (this.isBroken) {
             ctx.beginPath();
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2.5;
             ctx.strokeStyle = '#ffffff';
             
             // Рисуем зигзаги вместо трещин
-            const zigzagCount = 3;
+            const zigzagCount = 5;
             const zigzagWidth = radius * 1.6 / zigzagCount;
             
             for (let i = 0; i < zigzagCount; i++) {
@@ -374,7 +374,7 @@ function playLevelUpSound() {
 function showCategoryChangeNotification(category) {
     const notification = document.createElement('div');
     notification.className = 'category-notification';
-    notification.textContent = category; // Показываем только название категории
+    notification.textContent = category; // Show only the category name
     notification.style.position = 'absolute';
     notification.style.left = '50%';
     notification.style.top = '30%';
@@ -390,12 +390,12 @@ function showCategoryChangeNotification(category) {
     
     document.querySelector('.game-container').appendChild(notification);
     
-    // Показываем уведомление с анимацией
+    // Show notification with animation
     setTimeout(() => {
         notification.style.opacity = '1';
     }, 100);
     
-    // Добавляем эффект вспышки экрана
+    // Add screen flash effect
     const flash = document.createElement('div');
     flash.style.position = 'absolute';
     flash.style.left = '0';
@@ -408,16 +408,16 @@ function showCategoryChangeNotification(category) {
     flash.style.transition = 'opacity 0.5s';
     document.querySelector('.game-container').appendChild(flash);
     
-    // Скрываем и удаляем вспышку
+    // Hide and remove the flash
     setTimeout(() => {
         flash.style.opacity = '0';
         setTimeout(() => flash.remove(), 500);
     }, 300);
     
-    // Воспроизводим звук при смене категории
+    // Play sound on category change
     playLevelUpSound();
     
-    // Скрываем и удаляем уведомление через некоторое время
+    // Hide and remove notification after some time
     setTimeout(() => {
         notification.style.opacity = '0';
         setTimeout(() => notification.remove(), 500);
@@ -470,12 +470,12 @@ function checkCollisions() {
 
             // Увеличиваем счет только если поднялись на платформу выше
             if (platform.y < player.lastPlatformY) {
-                score += 100;
+                score += 20; // Изменено со 100 на 20
                 scoreElement.textContent = score;
                 player.lastPlatformY = platform.y;
                 
                 // Проверяем, изменилась ли категория и показываем уведомление
-                const prevCategory = getCategory(score - 100);
+                const prevCategory = getCategory(score - 20); // Изменено со 100 на 20
                 const currentCategory = getCategory(score);
                 if (prevCategory !== currentCategory) {
                     showCategoryChangeNotification(currentCategory);
@@ -490,9 +490,11 @@ document.addEventListener('keydown', (event) => {
     if (!isGameActive()) return;
     switch(event.code) {
         case 'KeyA':
+        case 'ArrowLeft':
             player.moveLeft();
             break;
         case 'KeyD':
+        case 'ArrowRight':
             player.moveRight();
             break;
     }
@@ -500,10 +502,66 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('keyup', (event) => {
     if (!isGameActive()) return;
-    if (event.code === 'KeyA' || event.code === 'KeyD') {
+    if (event.code === 'KeyA' || event.code === 'KeyD' || 
+        event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
         player.stop();
     }
 });
+
+// Add touch event handlers for mobile controls
+const leftBtn = document.getElementById('leftBtn');
+const rightBtn = document.getElementById('rightBtn');
+
+// Process touch events for mobile devices
+if (leftBtn && rightBtn) {
+    // Left button - touch handling
+    leftBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (isGameActive()) player.moveLeft();
+    });
+    
+    leftBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (isGameActive()) player.stop();
+    });
+    
+    // Right button - touch handling
+    rightBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (isGameActive()) player.moveRight();
+    });
+    
+    rightBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (isGameActive()) player.stop();
+    });
+    
+    // For mouse support on desktop devices
+    leftBtn.addEventListener('mousedown', () => {
+        if (isGameActive()) player.moveLeft();
+    });
+    
+    leftBtn.addEventListener('mouseup', () => {
+        if (isGameActive()) player.stop();
+    });
+    
+    rightBtn.addEventListener('mousedown', () => {
+        if (isGameActive()) player.moveRight();
+    });
+    
+    rightBtn.addEventListener('mouseup', () => {
+        if (isGameActive()) player.stop();
+    });
+    
+    // Stop movement when cursor leaves the button
+    leftBtn.addEventListener('mouseleave', () => {
+        if (isGameActive()) player.stop();
+    });
+    
+    rightBtn.addEventListener('mouseleave', () => {
+        if (isGameActive()) player.stop();
+    });
+}
 
 // Обработка кликов по кнопкам
 leaderboardBtn.addEventListener('click', () => {
@@ -519,9 +577,9 @@ closeLeaderboard.addEventListener('click', () => {
     hidePauseOverlay();
 });
 
-// Обновление таблицы лидеров
+// Функция обновления таблицы лидеров
 function updateLeaderboard() {
-    // Получаем записи из localStorage и сервера (если доступен)
+    // Получаем записи из localStorage
     let records = getLeaderboardRecords();
     
     // Сортируем по убыванию очков
@@ -530,48 +588,120 @@ function updateLeaderboard() {
     // Очищаем список
     leaderboardList.innerHTML = '';
     
-    // Ограничим количество отображаемых записей (например, топ-10)
-    const topRecords = records.slice(0, 10);
-    
-    // Поищем позицию текущего игрока в полном списке
+    // Находим данные текущего игрока
     const currentPlayerIndex = records.findIndex(r => r.name === playerName);
     const currentPlayerRank = currentPlayerIndex !== -1 ? currentPlayerIndex + 1 : '-';
+    const currentPlayerScore = currentPlayerIndex !== -1 ? records[currentPlayerIndex].score : 0;
     
-    // Добавляем строки топ игроков
-    topRecords.forEach((rec, i) => {
-        const row = document.createElement('tr');
-        if (rec.name === playerName) {
-            row.className = 'current-player';
-            row.style.backgroundColor = 'rgba(138, 79, 255, 0.3)'; // Выделяем текущего игрока фиолетовым
-            row.style.fontWeight = 'bold';
-        }
-        row.innerHTML = `<td>${i + 1}</td><td>${rec.name}</td><td>${rec.score}</td><td>${getCategory(rec.score)}</td>`;
-        leaderboardList.appendChild(row);
-    });
+    // Формируем содержимое для tbody
+    let bodyContent = '';
     
-    // Если текущий игрок не в топе, добавляем разделитель и его запись
-    if (currentPlayerIndex >= topRecords.length && currentPlayerIndex !== -1) {
-        // Добавляем разделитель
-        const separatorRow = document.createElement('tr');
-        separatorRow.innerHTML = '<td colspan="4">...</td>';
-        separatorRow.style.textAlign = 'center';
-        leaderboardList.appendChild(separatorRow);
-        
-        // Добавляем строку с текущим игроком
-        const currentPlayerRow = document.createElement('tr');
-        currentPlayerRow.className = 'current-player';
-        currentPlayerRow.style.backgroundColor = 'rgba(138, 79, 255, 0.3)';
-        currentPlayerRow.style.fontWeight = 'bold';
-        currentPlayerRow.innerHTML = `<td>${currentPlayerRank}</td><td>${playerName}</td><td>${records[currentPlayerIndex].score}</td><td>${getCategory(records[currentPlayerIndex].score)}</td>`;
-        leaderboardList.appendChild(currentPlayerRow);
+    // Добавляем строку с персональным результатом
+    if (currentPlayerIndex !== -1) {
+        const category = getCategory(currentPlayerScore);
+        bodyContent += `
+            <tr style="background-color: rgba(138, 79, 255, 0.2);">
+                <td colspan="4" style="padding: 10px; border: none;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 15px;">
+                        <div style="font-weight: bold;">Your best: ${currentPlayerScore} points</div>
+                        <div style="display: flex; align-items: center;">
+                            <div style="margin-right: 10px;">Rank: ${currentPlayerRank}</div>
+                            <span class="category-badge" style="background-color: ${getCategoryColor(category)};">${category}</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    } else {
+        bodyContent += `
+            <tr style="background-color: rgba(138, 79, 255, 0.2);">
+                <td colspan="4" style="padding: 10px; border: none;">
+                    <div style="text-align: center; font-style: italic; color: #ffcc00;">
+                        You don't have a record yet. Play to get on the leaderboard!
+                    </div>
+                </td>
+            </tr>
+        `;
     }
     
+    // Добавляем поле поиска
+    bodyContent += `
+        <tr>
+            <td colspan="4" style="border: none;">
+                <div class="search-container">
+                    <input type="text" id="leaderSearchInput" placeholder="Search by nickname..." style="width: 100%; padding: 10px; margin: 10px 0; border-radius: 6px;">
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    // Добавляем всех игроков без ограничения
+    records.forEach((rec, i) => {
+        let rankClass = '';
+        
+        if (i === 0) {
+            rankClass = 'gold-rank';
+        } else if (i === 1) {
+            rankClass = 'silver-rank';
+        } else if (i === 2) {
+            rankClass = 'bronze-rank';
+        }
+        
+        const isCurrentPlayer = rec.name === playerName;
+        const rowStyle = isCurrentPlayer ? 'background-color: rgba(138, 79, 255, 0.3); font-weight: bold;' : '';
+        
+        bodyContent += `
+            <tr class="player-row" data-name="${rec.name.toLowerCase()}" style="${rowStyle}">
+                <td class="${rankClass}" style="text-align: center; width: 15%; border: 1px solid rgba(255, 255, 255, 0.2);">${i + 1}</td>
+                <td style="text-align: left; width: 35%; border: 1px solid rgba(255, 255, 255, 0.2);">${rec.name}</td>
+                <td style="text-align: right; width: 20%; border: 1px solid rgba(255, 255, 255, 0.2);">${rec.score}</td>
+                <td style="text-align: center; width: 30%; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <span class="category-badge" style="background-color: ${getCategoryColor(getCategory(rec.score))};">${getCategory(rec.score)}</span>
+                </td>
+            </tr>
+        `;
+    });
+    
     // Добавляем информацию о количестве участников
-    const totalRow = document.createElement('tr');
-    totalRow.innerHTML = `<td colspan="4">Всего игроков: ${records.length}</td>`;
-    totalRow.style.textAlign = 'center';
-    totalRow.style.fontStyle = 'italic';
-    leaderboardList.appendChild(totalRow);
+    bodyContent += `
+        <tr>
+            <td colspan="4" style="text-align: center; font-style: italic; border-top: 1px solid #ccc; padding-top: 10px; border: none;">
+                Total players: ${records.length}
+            </td>
+        </tr>
+    `;
+    
+    // Добавляем содержимое напрямую в tbody
+    leaderboardList.innerHTML = bodyContent;
+    
+    // Добавляем обработчик для поиска
+    const searchInput = document.getElementById('leaderSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            const rows = document.querySelectorAll('.player-row');
+            
+            rows.forEach(row => {
+                const nameMatch = row.dataset.name && row.dataset.name.includes(searchTerm);
+                row.style.display = nameMatch ? '' : 'none';
+            });
+        });
+    }
+}
+
+// Функция для получения цвета категории
+function getCategoryColor(category) {
+    switch(category) {
+        case 'Aprove?': return '#6c757d';
+        case 'Gmpc': return '#28a745';
+        case 'Arcian': return '#17a2b8';
+        case 'PARASOL ☂️': return '#fd7e14';
+        case 'Loosty GM': return '#dc3545';
+        case 'Well you a monster': return '#7952b3';
+        case 'A BOT?': return '#ff6b6b';
+        case 'LEGEND': return '#ffc107';
+        default: return '#6c757d';
+    }
 }
 
 // Функция для получения записей таблицы лидеров из localStorage и сервера
@@ -721,13 +851,16 @@ function hideStartBtn() {
     document.querySelector('.game-container').style.filter = '';
 }
 function saveName() {
-    console.log('saveName вызвана');
+    console.log('saveName called');
     const input = document.getElementById('playerNameInput').value.trim();
     if (!input) return;
     playerName = input;
     localStorage.setItem('playerName', playerName);
     hideNameMenu();
+    
+    // Fix: Always show the Start button after saving name
     showStartBtn();
+    console.log('Start button should be visible now');
 }
 function startGame() {
     hideStartBtn();
@@ -759,6 +892,7 @@ window.addEventListener('DOMContentLoaded', () => {
     } else {
         showStartBtn();
     }
+    
     document.getElementById('saveNameBtn').onclick = saveName;
     document.getElementById('playerNameInput').onkeydown = e => {
         if (e.key === 'Enter') saveName();
@@ -766,6 +900,13 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startBtn').onclick = startGame;
     document.getElementById('resumeBtn').onclick = () => { paused = false; hidePauseOverlay(); };
     document.getElementById('restartBtn').onclick = restartGame;
+    
+    // Also add touch event listener for start button 
+    document.getElementById('startBtn').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startGame();
+    });
+    
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Escape') {
             paused = !paused;
@@ -776,44 +917,57 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+    
+    // Add detection for mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+        document.querySelector('.mobile-controls').style.display = 'flex';
+    }
+    
+    // Debug: Make button visible
+    console.log('Initial DOM loaded, playerName:', playerName);
+    if (playerName) {
+        console.log('Player name exists, showing start button');
+        document.getElementById('startBtn').style.display = 'inline-block';
+    }
 });
 
 // Функция для показа красивого окна завершения игры
 function showGameOverScreen(currentScore) {
-    // Получаем все записи из localStorage
+    // Get all records from localStorage
     const records = JSON.parse(localStorage.getItem('records') || '[]');
     
-    // Проверяем, есть ли уже запись для этого никнейма
+    // Check if there's already a record for this nickname
     const prevRecord = records.find(rec => rec.name === playerName);
     const isNewRecord = !prevRecord || currentScore > prevRecord.score;
     
-    // Сохраняем счет
+    // Save score
     saveScore();
     
-    // Обновляем записи для определения места
+    // Update records to determine position
     const updatedRecords = JSON.parse(localStorage.getItem('records') || '[]');
     updatedRecords.sort((a, b) => b.score - a.score);
     
-    // Определяем место игрока
+    // Determine player rank
     const playerRank = updatedRecords.findIndex(rec => rec.name === playerName) + 1;
     
-    // Заполняем информацию в окне завершения игры
+    // Fill information in game over screen
     document.querySelector('#gameOverScore span').textContent = currentScore;
     document.querySelector('#gameOverPlace span').textContent = playerRank;
     
-    // Формируем мотивирующее сообщение
+    // Create motivational message
     let message = '';
     if (isNewRecord) {
-        message = 'Поздравляем! Вы установили новый личный рекорд!';
+        message = 'Congratulations! You\'ve set a new personal record!';
     } else {
-        message = 'Ничего страшного, у тебя всё впереди!';
+        message = 'Don\'t worry, you can do better next time!';
     }
     document.getElementById('gameOverMessage').textContent = message;
     
-    // Показываем окно завершения игры
+    // Show game over screen
     document.getElementById('gameOverOverlay').style.display = 'flex';
     
-    // Ставим игру на паузу
+    // Pause the game
     paused = true;
 }
 
@@ -859,14 +1013,14 @@ function gameLoop() {
     // Определяем текущий уровень сложности
     const difficultyLevel = getDifficultyLevel(score);
     
-    // Увеличиваем гравитацию с уровнем сложности (усилено)
-    player.gravity = 0.1 + (difficultyLevel * 0.015); // Увеличено с 0.01 до 0.015
+    // Увеличиваем гравитацию с уровнем сложности, но не так сильно как раньше
+    player.gravity = 0.1 + (difficultyLevel * 0.01); // Возвращаем к оригинальному значению
     
-    // Корректируем силу прыжка в зависимости от сложности (усилено)
-    player.jumpForce = -10 + (difficultyLevel * 0.3); // Увеличено с 0.2 до 0.3
+    // Корректируем силу прыжка, делаем её больше для компенсации увеличения скорости
+    player.jumpForce = -10 + (difficultyLevel * 0.18); // Более плавная настройка силы прыжка
     
-    // Уменьшаем скорость игрока с ростом сложности (усилено)
-    player.speed = Math.max(2, 4 - (difficultyLevel * 0.3)); // Увеличено с 0.2 до 0.3
+    // Уменьшаем скорость игрока с ростом сложности
+    player.speed = Math.max(2, 4 - (difficultyLevel * 0.3)); // Без изменений, оставляем как есть
     
     // Добавляем эффект "дрожания" платформ для высоких уровней
     if (difficultyLevel > 4) {
