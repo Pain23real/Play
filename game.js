@@ -17,10 +17,21 @@ let cameraY = 0; // Добавляем переменную для камеры
 let playerName = localStorage.getItem('playerName') || '';
 let gameStarted = false;
 let paused = false;
+let gameStartTime = 0; // Время начала игры
+let safeStartPeriod = 3000; // Безопасный период в начале игры (3 секунды)
+let baseSpeed = 4; // Базовая скорость игрока
+let speedIncrement = 0.25; // Увеличение скорости при каждом прыжке - увеличено с 0.15
 
 // Загружаем изображение для персонажа
 const playerImg = new Image();
 playerImg.src = 'ARCIUM_Primary-Icon_light.svg'; // SVG-картинка персонажа
+
+// Загружаем изображение зонтика
+const umbrellaImg = new Image();
+umbrellaImg.src = 'umbrella.svg'; // SVG-картинка зонтика с прозрачным фоном
+
+// Создаем аудиоконтекст для звуковых эффектов
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 // Класс для игрока
 class Player {
@@ -33,10 +44,11 @@ class Player {
         this.velocityX = 0;
         this.jumping = false;
         this.gravity = 0.1; // Уменьшаем гравитацию для более медленного движения вверх-вниз
-        this.speed = 4;
+        this.speed = baseSpeed; // Используем глобальную базовую скорость
         this.lastPlatformY = canvas.height - this.height;
         this.jumpForce = -10; // Возвращаем прежнюю высоту прыжка
         this.currentPlatform = null;
+        this.movementMultiplier = 1.5; // Множитель для более резкого движения
     }
 
     draw() {
@@ -53,12 +65,13 @@ class Player {
         this.y += this.velocityY;
         this.x += this.velocityX;
 
-        // Ограничение движения по горизонтали
-        if (this.x < 0) {
-            this.x = 0;
-        }
-        if (this.x + this.width > canvas.width) {
+        // Добавляем эффект экранной петли: когда игрок выходит за правый край, он появляется слева и наоборот
+        if (this.x + this.width < 0) {
+            // Если вышли за левый край - перемещаемся к правому
             this.x = canvas.width - this.width;
+        } else if (this.x > canvas.width) {
+            // Если вышли за правый край - перемещаемся к левому
+            this.x = 0;
         }
 
         // Проверка столкновения с землей
@@ -70,11 +83,11 @@ class Player {
     }
 
     moveLeft() {
-        this.velocityX = -this.speed;
+        this.velocityX = -this.speed * this.movementMultiplier; // Применяем множитель для более резкого движения
     }
 
     moveRight() {
-        this.velocityX = this.speed;
+        this.velocityX = this.speed * this.movementMultiplier; // Применяем множитель для более резкого движения
     }
 
     stop() {
@@ -90,16 +103,127 @@ class Platform {
         this.x = x;
         this.y = y;
         this.isCurrent = false;
+        // Добавляем признак "сломанного" зонтика
+        this.isBroken = score >= 500 && Math.random() < 0.3; // 30% вероятность быть сломанным
+        // Случайный цвет для зонтика, для сломанных всегда фиолетовый
+        this.color = this.isBroken ? '#8a4fff' : this.getRandomColor();
+        // Добавляем смещение зонтика для более реалистичных коллизий
+        this.umbrellaTopOffset = this.height * 1.5; // Увеличено для лучшей коллизии с верхом зонтика
+        // Добавляем движение некоторым платформам
+        this.isMoving = score >= 1500 && Math.random() < 0.3; // 30% движущиеся платформы после 1500 очков
+        this.moveSpeed = (Math.random() * 2 + 1) * (Math.random() < 0.5 ? 1 : -1); // Скорость 1-3, случайное направление
+        this.moveDistance = Math.random() * 150 + 50; // Дистанция 50-200px
+        this.initialX = x; // Сохраняем начальную позицию для движения
+        // Добавляем временное исчезновение для некоторых платформ
+        this.isTemporary = score >= 2000 && Math.random() < 0.2; // 20% временных платформ после 2000 очков
+        this.startTime = Date.now();
+        this.lifeTime = Math.random() * 5000 + 5000; // 5-10 секунд жизни для временных платформ
+    }
+
+    getRandomColor() {
+        const colors = ['#ff6b6b', '#6b3fd9', '#4ecdc4', '#ffbe0b', '#fb5607', '#8338ec'];
+        return colors[Math.floor(Math.random() * colors.length)];
     }
 
     draw() {
         if (this.isCurrent) {
             // Подсветка текущей платформы
-            ctx.fillStyle = '#ff6b6b';
-            ctx.fillRect(this.x - 2, this.y - cameraY - 2, this.width + 4, this.height + 4);
+            ctx.save();
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 15;
         }
-        ctx.fillStyle = '#6b3fd9';
-        ctx.fillRect(this.x, this.y - cameraY, this.width, this.height);
+        
+        // Сохраняем текущий контекст
+        ctx.save();
+        
+        // Рисуем зонтик с помощью Canvas API
+        var centerX = this.x + this.width / 2;
+        var centerY = this.y - cameraY;
+        var radius = this.width / 2;
+        var handleHeight = this.height * 1.2;
+        
+        // Рисуем купол зонтика (полукруг)
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.arc(centerX, centerY - this.umbrellaTopOffset, radius, Math.PI, 0, false);
+        ctx.fill();
+        
+        // Добавляем окантовку купола
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#333';
+        ctx.arc(centerX, centerY - this.umbrellaTopOffset, radius, Math.PI, 0, false);
+        ctx.stroke();
+        
+        // Если зонтик сломан, рисуем "трещины" в виде зигзагов
+        if (this.isBroken) {
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffffff';
+            
+            // Рисуем зигзаги вместо трещин
+            const zigzagCount = 3;
+            const zigzagWidth = radius * 1.6 / zigzagCount;
+            
+            for (let i = 0; i < zigzagCount; i++) {
+                const startX = centerX - radius + i * zigzagWidth;
+                const endX = startX + zigzagWidth;
+                const midY = centerY - this.umbrellaTopOffset - radius * 0.2;
+                const baseY = centerY - this.umbrellaTopOffset;
+                
+                ctx.moveTo(startX, baseY);
+                ctx.lineTo((startX + endX) / 2, midY);
+                ctx.lineTo(endX, baseY);
+            }
+            ctx.stroke();
+        }
+        
+        // Рисуем ручку зонтика
+        ctx.beginPath();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#333';
+        ctx.moveTo(centerX, centerY - this.umbrellaTopOffset);
+        ctx.lineTo(centerX, centerY + handleHeight - this.umbrellaTopOffset);
+        ctx.stroke();
+        
+        // Рисуем изгиб на конце ручки
+        ctx.beginPath();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#333';
+        ctx.arc(centerX - 5, centerY + handleHeight - this.umbrellaTopOffset, 5, 0, Math.PI, false);
+        ctx.stroke();
+        
+        // Добавляем "спицы" зонтика
+        ctx.beginPath();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#333';
+        for (var i = 1; i <= 6; i++) {
+            var angle = Math.PI + (i * Math.PI / 7);
+            ctx.moveTo(centerX, centerY - this.umbrellaTopOffset);
+            var endX = centerX + radius * Math.cos(angle);
+            var endY = centerY - this.umbrellaTopOffset + radius * Math.sin(angle);
+            ctx.lineTo(endX, endY);
+        }
+        ctx.stroke();
+        
+        // Если платформа временная, добавляем пунктирную окантовку
+        if (this.isTemporary) {
+            const timePassed = Date.now() - this.startTime;
+            const lifePercentage = timePassed / this.lifeTime;
+            
+            if (lifePercentage > 0.7) {
+                ctx.beginPath();
+                ctx.setLineDash([5, 3]); // Пунктирная линия
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#fff';
+                ctx.arc(centerX, centerY - this.umbrellaTopOffset, radius + 3, Math.PI, 0, false);
+                ctx.stroke();
+                ctx.setLineDash([]); // Возвращаем обычную линию
+            }
+        }
+        
+        // Восстанавливаем контекст
+        ctx.restore();
 
         // Текст на платформе по категориям
         let text = getCategory(score);
@@ -108,8 +232,55 @@ class Platform {
             ctx.font = (text.length > 15 ? 'bold 10px Arial' : 'bold 16px Arial');
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(text, this.x + this.width / 2, this.y - cameraY + this.height / 2);
+            ctx.fillText(text, this.x + this.width / 2, this.y - cameraY - this.umbrellaTopOffset - 20);
         }
+        
+        if (this.isCurrent) {
+            ctx.restore(); // Восстанавливаем контекст после подсветки
+        }
+    }
+    
+    update() {
+        // Обновление для движущихся платформ
+        if (this.isMoving) {
+            // Двигаем платформу горизонтально
+            this.x += this.moveSpeed;
+            
+            // Проверяем, не вышла ли платформа за пределы заданного диапазона движения
+            if (Math.abs(this.x - this.initialX) > this.moveDistance) {
+                this.moveSpeed = -this.moveSpeed; // Меняем направление
+            }
+            
+            // Проверяем, не вышла ли платформа за пределы экрана
+            if (this.x < 0) {
+                this.x = 0;
+                this.moveSpeed = Math.abs(this.moveSpeed); // Меняем направление
+            } else if (this.x + this.width > canvas.width) {
+                this.x = canvas.width - this.width;
+                this.moveSpeed = -Math.abs(this.moveSpeed); // Меняем направление
+            }
+        }
+        
+        // Проверка времени жизни для временных платформ
+        if (this.isTemporary) {
+            const timePassed = Date.now() - this.startTime;
+            
+            // Если время вышло, начинаем исчезновение
+            if (timePassed > this.lifeTime && !this.fading) {
+                this.fading = true;
+                this.opacity = 1;
+            }
+            
+            // Если платформа исчезает, уменьшаем прозрачность
+            if (this.fading) {
+                this.opacity -= 0.05;
+                if (this.opacity < 0) this.opacity = 0;
+            }
+        }
+        
+        // Возвращаем true если платформа всё еще активна, false если её нужно удалить
+        if (this.fading && this.opacity <= 0) return false;
+        return true;
     }
 }
 
@@ -136,10 +307,121 @@ function createInitialPlatforms() {
 function createNewPlatform() {
     // Находим самую верхнюю платформу
     const highestPlatformY = Math.min(...platforms.map(p => p.y));
-    // Новая платформа появляется выше самой верхней на фиксированное расстояние (например, 80)
-    const y = highestPlatformY - 80;
-    const x = Math.random() * (canvas.width - 100);
-    platforms.push(new Platform(x, y));
+    
+    // Определяем уровень сложности
+    const difficultyLevel = getDifficultyLevel(score);
+    
+    // Расстояние между платформами увеличивается с уровнем сложности (усилено)
+    const verticalGap = 80 + (difficultyLevel * 8); // Увеличиваем с 5 до 8
+    
+    // Ширина платформ уменьшается с уровнем сложности (усилено)
+    const platformWidth = Math.max(40, 100 - (difficultyLevel * 8)); // Минимум 40, увеличиваем с 5 до 8
+    
+    // Новая платформа появляется выше самой верхней
+    const y = highestPlatformY - verticalGap;
+    
+    // Горизонтальная позиция становится более случайной с ростом сложности
+    const horizontalVariance = difficultyLevel * 0.15; // Увеличено с 0.1 до 0.15
+    const x = Math.random() * (canvas.width - platformWidth);
+    
+    const platform = new Platform(x, y);
+    platform.width = platformWidth; // Устанавливаем новую ширину
+    
+    // Чем выше уровень сложности, тем больше вероятность сломанных платформ
+    if (score >= 500) {
+        platform.isBroken = Math.random() < (0.3 + difficultyLevel * 0.07); // Увеличено с 0.05 до 0.07
+    }
+    
+    platforms.push(platform);
+}
+
+// Функция для воспроизведения звука при смене категории
+function playLevelUpSound() {
+    // Создаем осцилляторы для более интересного звука
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    // Настраиваем первый осциллятор (более высокая частота)
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(440, audioCtx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+    
+    // Настраиваем второй осциллятор (более низкая частота)
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(220, audioCtx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
+    
+    // Настраиваем громкость звука
+    gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    
+    // Подключаем узлы
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    // Запускаем осцилляторы
+    osc1.start();
+    osc2.start();
+    
+    // Останавливаем их через полсекунды
+    osc1.stop(audioCtx.currentTime + 0.5);
+    osc2.stop(audioCtx.currentTime + 0.5);
+}
+
+// Функция для показа уведомления при изменении категории
+function showCategoryChangeNotification(category) {
+    const notification = document.createElement('div');
+    notification.className = 'category-notification';
+    notification.textContent = category; // Показываем только название категории
+    notification.style.position = 'absolute';
+    notification.style.left = '50%';
+    notification.style.top = '30%';
+    notification.style.transform = 'translate(-50%, -50%)';
+    notification.style.padding = '10px 20px';
+    notification.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    notification.style.color = '#fff';
+    notification.style.borderRadius = '5px';
+    notification.style.fontSize = '24px';
+    notification.style.zIndex = '100';
+    notification.style.opacity = '0';
+    notification.style.transition = 'opacity 0.5s';
+    
+    document.querySelector('.game-container').appendChild(notification);
+    
+    // Показываем уведомление с анимацией
+    setTimeout(() => {
+        notification.style.opacity = '1';
+    }, 100);
+    
+    // Добавляем эффект вспышки экрана
+    const flash = document.createElement('div');
+    flash.style.position = 'absolute';
+    flash.style.left = '0';
+    flash.style.top = '0';
+    flash.style.width = '100%';
+    flash.style.height = '100%';
+    flash.style.backgroundColor = 'white';
+    flash.style.opacity = '0.4';
+    flash.style.zIndex = '50';
+    flash.style.transition = 'opacity 0.5s';
+    document.querySelector('.game-container').appendChild(flash);
+    
+    // Скрываем и удаляем вспышку
+    setTimeout(() => {
+        flash.style.opacity = '0';
+        setTimeout(() => flash.remove(), 500);
+    }, 300);
+    
+    // Воспроизводим звук при смене категории
+    playLevelUpSound();
+    
+    // Скрываем и удаляем уведомление через некоторое время
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 500);
+    }, 2000);
 }
 
 // Проверка столкновений
@@ -147,24 +429,57 @@ function checkCollisions() {
     // Сбрасываем флаг текущей платформы для всех платформ
     platforms.forEach(platform => platform.isCurrent = false);
     
+    // Отслеживаем предыдущую платформу
+    const previousPlatform = player.currentPlatform;
+    
     platforms.forEach(platform => {
+        const playerBottom = player.y + player.height;
+        const platformTop = platform.y - platform.umbrellaTopOffset;
+        
         if (player.velocityY > 0 && // Падаем вниз
             player.x + player.width > platform.x &&
             player.x < platform.x + platform.width &&
-            player.y + player.height > platform.y &&
-            player.y + player.height < platform.y + platform.height + 10) {
+            playerBottom > platformTop &&
+            playerBottom < platformTop + 10) {
             
-            player.y = platform.y - player.height;
+            player.y = platformTop - player.height;
             player.velocityY = player.jumpForce;
             player.jumping = false;
             platform.isCurrent = true; // Устанавливаем флаг текущей платформы
+            
+            // Если предыдущая платформа была сломана, она должна исчезнуть
+            if (previousPlatform && previousPlatform.isBroken && score >= 500) {
+                const fadeOutPlatform = previousPlatform;
+                const fadeOutAnimation = setInterval(() => {
+                    // Уменьшаем прозрачность постепенно
+                    if (fadeOutPlatform.opacity === undefined) fadeOutPlatform.opacity = 1;
+                    fadeOutPlatform.opacity -= 0.1;
+                    
+                    if (fadeOutPlatform.opacity <= 0) {
+                        clearInterval(fadeOutAnimation);
+                        // Удаляем платформу из массива
+                        platforms = platforms.filter(p => p !== fadeOutPlatform);
+                    }
+                }, 50);
+            }
+            
             player.currentPlatform = platform;
+            
+            // Увеличиваем скорость игрока при каждом прыжке
+            player.speed += speedIncrement;
 
             // Увеличиваем счет только если поднялись на платформу выше
             if (platform.y < player.lastPlatformY) {
                 score += 100;
                 scoreElement.textContent = score;
                 player.lastPlatformY = platform.y;
+                
+                // Проверяем, изменилась ли категория и показываем уведомление
+                const prevCategory = getCategory(score - 100);
+                const currentCategory = getCategory(score);
+                if (prevCategory !== currentCategory) {
+                    showCategoryChangeNotification(currentCategory);
+                }
             }
         }
     });
@@ -206,13 +521,163 @@ closeLeaderboard.addEventListener('click', () => {
 
 // Обновление таблицы лидеров
 function updateLeaderboard() {
-    let records = JSON.parse(localStorage.getItem('records') || '[]');
+    // Получаем записи из localStorage и сервера (если доступен)
+    let records = getLeaderboardRecords();
+    
     // Сортируем по убыванию очков
     records.sort((a, b) => b.score - a.score);
-    // Формируем строки таблицы
-    leaderboardList.innerHTML = records.map((rec, i) =>
-        `<tr><td>${i + 1}</td><td>${rec.name}</td><td>${rec.score}</td><td>${getCategory(rec.score)}</td></tr>`
-    ).join('');
+    
+    // Очищаем список
+    leaderboardList.innerHTML = '';
+    
+    // Ограничим количество отображаемых записей (например, топ-10)
+    const topRecords = records.slice(0, 10);
+    
+    // Поищем позицию текущего игрока в полном списке
+    const currentPlayerIndex = records.findIndex(r => r.name === playerName);
+    const currentPlayerRank = currentPlayerIndex !== -1 ? currentPlayerIndex + 1 : '-';
+    
+    // Добавляем строки топ игроков
+    topRecords.forEach((rec, i) => {
+        const row = document.createElement('tr');
+        if (rec.name === playerName) {
+            row.className = 'current-player';
+            row.style.backgroundColor = 'rgba(138, 79, 255, 0.3)'; // Выделяем текущего игрока фиолетовым
+            row.style.fontWeight = 'bold';
+        }
+        row.innerHTML = `<td>${i + 1}</td><td>${rec.name}</td><td>${rec.score}</td><td>${getCategory(rec.score)}</td>`;
+        leaderboardList.appendChild(row);
+    });
+    
+    // Если текущий игрок не в топе, добавляем разделитель и его запись
+    if (currentPlayerIndex >= topRecords.length && currentPlayerIndex !== -1) {
+        // Добавляем разделитель
+        const separatorRow = document.createElement('tr');
+        separatorRow.innerHTML = '<td colspan="4">...</td>';
+        separatorRow.style.textAlign = 'center';
+        leaderboardList.appendChild(separatorRow);
+        
+        // Добавляем строку с текущим игроком
+        const currentPlayerRow = document.createElement('tr');
+        currentPlayerRow.className = 'current-player';
+        currentPlayerRow.style.backgroundColor = 'rgba(138, 79, 255, 0.3)';
+        currentPlayerRow.style.fontWeight = 'bold';
+        currentPlayerRow.innerHTML = `<td>${currentPlayerRank}</td><td>${playerName}</td><td>${records[currentPlayerIndex].score}</td><td>${getCategory(records[currentPlayerIndex].score)}</td>`;
+        leaderboardList.appendChild(currentPlayerRow);
+    }
+    
+    // Добавляем информацию о количестве участников
+    const totalRow = document.createElement('tr');
+    totalRow.innerHTML = `<td colspan="4">Всего игроков: ${records.length}</td>`;
+    totalRow.style.textAlign = 'center';
+    totalRow.style.fontStyle = 'italic';
+    leaderboardList.appendChild(totalRow);
+}
+
+// Функция для получения записей таблицы лидеров из localStorage и сервера
+function getLeaderboardRecords() {
+    // Получаем записи из localStorage
+    let localRecords = JSON.parse(localStorage.getItem('records') || '[]');
+    
+    // Здесь можно добавить код для получения записей с сервера и объединения с локальными
+    
+    // Сохраняем копию записей в sessionStorage для восстановления при перезапуске браузера
+    sessionStorage.setItem('records_backup', JSON.stringify(localRecords));
+    
+    return localRecords;
+}
+
+// Функция для сохранения записей таблицы лидеров в localStorage и на сервер
+function saveLeaderboardRecords(records) {
+    // Сохраняем в localStorage
+    localStorage.setItem('records', JSON.stringify(records));
+    
+    // Сохраняем в sessionStorage как резервную копию
+    sessionStorage.setItem('records_backup', JSON.stringify(records));
+    
+    // Здесь можно добавить код для сохранения на сервер
+    // Например, с использованием Fetch API для отправки данных на сервер
+    
+    // Пример кода для отправки на сервер:
+    /*
+    if (window.navigator.onLine) { // Проверяем, есть ли подключение к интернету
+        fetch('https://your-server.com/api/leaderboard', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(records)
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Ошибка сохранения на сервере:', response.statusText);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при отправке данных на сервер:', error);
+        });
+    }
+    */
+}
+
+// Функция для загрузки таблицы лидеров с сервера
+function loadLeaderboardFromServer() {
+    // Здесь можно добавить код для загрузки таблицы лидеров с сервера
+    // Например, с использованием Fetch API
+    
+    // Пример кода:
+    /*
+    if (window.navigator.onLine) {
+        fetch('https://your-server.com/api/leaderboard')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Ошибка загрузки с сервера');
+            })
+            .then(serverRecords => {
+                // Объединяем с локальными записями
+                let localRecords = JSON.parse(localStorage.getItem('records') || '[]');
+                
+                // Создаем объединенный список и удаляем дубликаты
+                const combinedRecords = [...localRecords];
+                
+                serverRecords.forEach(serverRec => {
+                    const localIndex = combinedRecords.findIndex(localRec => 
+                        localRec.name === serverRec.name);
+                    
+                    if (localIndex === -1) {
+                        // Если записи нет локально, добавляем
+                        combinedRecords.push(serverRec);
+                    } else if (serverRec.score > combinedRecords[localIndex].score) {
+                        // Если серверная запись лучше, обновляем
+                        combinedRecords[localIndex] = serverRec;
+                    }
+                    // Если локальная запись лучше, оставляем её
+                });
+                
+                // Сохраняем объединенные записи
+                localStorage.setItem('records', JSON.stringify(combinedRecords));
+                
+                // Обновляем отображение
+                updateLeaderboard();
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке данных с сервера:', error);
+                // Используем резервную копию из sessionStorage если есть
+                const backupRecords = sessionStorage.getItem('records_backup');
+                if (backupRecords) {
+                    localStorage.setItem('records', backupRecords);
+                }
+            });
+    } else {
+        // Если нет подключения, используем резервную копию
+        const backupRecords = sessionStorage.getItem('records_backup');
+        if (backupRecords) {
+            localStorage.setItem('records', backupRecords);
+        }
+    }
+    */
 }
 
 // Сохранение счета
@@ -227,7 +692,9 @@ function saveScore() {
         // Есть запись, но побит рекорд — обновляем
         records[idx].score = score;
     } // иначе не обновляем
-    localStorage.setItem('records', JSON.stringify(records));
+    
+    // Сохраняем обновленные записи
+    saveLeaderboardRecords(records);
 }
 
 function showNameMenu() {
@@ -244,6 +711,7 @@ function showNameMenu() {
 }
 function hideNameMenu() {
     document.getElementById('nameMenu').style.display = 'none';
+    document.querySelector('.game-container').style.filter = ''; // Убираем размытие при закрытии меню
 }
 function showStartBtn() {
     document.getElementById('startBtn').style.display = 'inline-block';
@@ -258,16 +726,16 @@ function saveName() {
     if (!input) return;
     playerName = input;
     localStorage.setItem('playerName', playerName);
-    document.getElementById('nameMenu').style.display = 'none';
-    document.querySelector('.game-container').style.filter = '';
-    document.getElementById('startBtn').style.display = 'inline-block';
+    hideNameMenu();
+    showStartBtn();
 }
 function startGame() {
     hideStartBtn();
     document.querySelector('.game-container').style.filter = '';
     gameStarted = true;
+    gameStartTime = Date.now(); // Запоминаем время начала игры
 }
-function isGameActive() { return gameStarted && !paused; }
+function isGameActive() { return gameStarted && !paused && !gameOver; }
 
 function showPauseOverlay() {
     document.getElementById('pauseOverlay').style.display = 'flex';
@@ -297,6 +765,7 @@ window.addEventListener('DOMContentLoaded', () => {
     };
     document.getElementById('startBtn').onclick = startGame;
     document.getElementById('resumeBtn').onclick = () => { paused = false; hidePauseOverlay(); };
+    document.getElementById('restartBtn').onclick = restartGame;
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Escape') {
             paused = !paused;
@@ -309,6 +778,67 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// Функция для показа красивого окна завершения игры
+function showGameOverScreen(currentScore) {
+    // Получаем все записи из localStorage
+    const records = JSON.parse(localStorage.getItem('records') || '[]');
+    
+    // Проверяем, есть ли уже запись для этого никнейма
+    const prevRecord = records.find(rec => rec.name === playerName);
+    const isNewRecord = !prevRecord || currentScore > prevRecord.score;
+    
+    // Сохраняем счет
+    saveScore();
+    
+    // Обновляем записи для определения места
+    const updatedRecords = JSON.parse(localStorage.getItem('records') || '[]');
+    updatedRecords.sort((a, b) => b.score - a.score);
+    
+    // Определяем место игрока
+    const playerRank = updatedRecords.findIndex(rec => rec.name === playerName) + 1;
+    
+    // Заполняем информацию в окне завершения игры
+    document.querySelector('#gameOverScore span').textContent = currentScore;
+    document.querySelector('#gameOverPlace span').textContent = playerRank;
+    
+    // Формируем мотивирующее сообщение
+    let message = '';
+    if (isNewRecord) {
+        message = 'Поздравляем! Вы установили новый личный рекорд!';
+    } else {
+        message = 'Ничего страшного, у тебя всё впереди!';
+    }
+    document.getElementById('gameOverMessage').textContent = message;
+    
+    // Показываем окно завершения игры
+    document.getElementById('gameOverOverlay').style.display = 'flex';
+    
+    // Ставим игру на паузу
+    paused = true;
+}
+
+// Функция для перезапуска игры
+function restartGame() {
+    // Скрываем окно завершения игры
+    document.getElementById('gameOverOverlay').style.display = 'none';
+    
+    // Сбрасываем все параметры
+    score = 0;
+    scoreElement.textContent = score;
+    player.y = canvas.height - player.height;
+    player.velocityY = player.jumpForce;
+    player.velocityX = 0; // Сброс горизонтальной скорости при перезапуске
+    cameraY = 0;
+    player.lastPlatformY = canvas.height - player.height;
+    player.currentPlatform = null;
+    createInitialPlatforms();
+    
+    // Снимаем с паузы и продолжаем игру
+    gameOver = false;
+    paused = false;
+    gameStartTime = Date.now(); // Сбрасываем время начала игры
+}
+
 // Игровой цикл
 function gameLoop() {
     if (!isGameActive()) {
@@ -317,17 +847,50 @@ function gameLoop() {
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Обновляем позицию камеры
+    // Обновляем позицию камеры (следуем и за подъемом и за падением)
     if (player.y < cameraY + canvas.height * 0.7) {
+        // Если игрок поднимается вверх - камера следует за ним
         cameraY = player.y - canvas.height * 0.7;
+    } else if (player.y > cameraY + canvas.height * 0.8) {
+        // Если игрок падает вниз - камера тоже опускается, но медленнее
+        cameraY = player.y - canvas.height * 0.8;
     }
     
+    // Определяем текущий уровень сложности
+    const difficultyLevel = getDifficultyLevel(score);
+    
+    // Увеличиваем гравитацию с уровнем сложности (усилено)
+    player.gravity = 0.1 + (difficultyLevel * 0.015); // Увеличено с 0.01 до 0.015
+    
+    // Корректируем силу прыжка в зависимости от сложности (усилено)
+    player.jumpForce = -10 + (difficultyLevel * 0.3); // Увеличено с 0.2 до 0.3
+    
+    // Уменьшаем скорость игрока с ростом сложности (усилено)
+    player.speed = Math.max(2, 4 - (difficultyLevel * 0.3)); // Увеличено с 0.2 до 0.3
+    
+    // Добавляем эффект "дрожания" платформ для высоких уровней
+    if (difficultyLevel > 4) {
+        platforms.forEach(platform => {
+            if (Math.random() > 0.95) { // Увеличиваем вероятность с 0.98 до 0.95
+                platform.x += (Math.random() - 0.5) * (difficultyLevel - 3) * 1.5; // Усиливаем дрожание в 1.5 раза
+                // Ограничиваем движение платформы в пределах экрана
+                platform.x = Math.max(0, Math.min(canvas.width - platform.width, platform.x));
+            }
+        });
+    }
+    
+    // Удаляем секцию с автоматическим исчезновением зонтиков - теперь они исчезают после того, как игрок спрыгивает с них
+    // и только те, которые помечены как сломанные (isBroken = true)
+
     player.update();
     player.draw();
     
-    // Удаляем платформы, которые ушли за низ экрана
-    platforms = platforms.filter(platform => platform.y < cameraY + canvas.height);
+    // Удаляем платформы, которые ушли за низ экрана с запасом 300px для возможности восстановления
+    platforms = platforms.filter(platform => platform.y < cameraY + canvas.height + 300);
 
+    // Обновляем все платформы перед отрисовкой
+    platforms = platforms.filter(platform => platform.update());
+    
     // Генерируем новые платформы, если их меньше 15
     while (platforms.length < 15) {
         createNewPlatform();
@@ -335,24 +898,42 @@ function gameLoop() {
     
     // Сортируем платформы по высоте для правильного отображения
     platforms.sort((a, b) => a.y - b.y);
-    platforms.forEach(platform => platform.draw());
+    platforms.forEach(platform => {
+        // Если у платформы есть свойство opacity, используем его при отрисовке
+        if (platform.opacity !== undefined && platform.opacity < 1) {
+            ctx.globalAlpha = platform.opacity;
+            platform.draw();
+            ctx.globalAlpha = 1.0; // Возвращаем обратно
+        } else {
+            platform.draw();
+        }
+    });
     
     checkCollisions();
     
-    // Если игрок упал вниз
-    if (player.y > cameraY + canvas.height) {
-        gameOver = true;
-        saveScore();
-        alert(`Игра окончена! Ваш счет: ${score}`);
-        score = 0;
-        scoreElement.textContent = score;
-        player.y = canvas.height - player.height;
-        player.velocityY = player.jumpForce;
-        cameraY = 0;
-        player.lastPlatformY = canvas.height - player.height;
-        player.currentPlatform = null;
-        createInitialPlatforms();
-        gameOver = false;
+    // Новая логика проигрыша: если игрок пролетает ниже второго снизу зонтика
+    // Не проверяем проигрыш в течение безопасного периода после начала игры
+    const currentTime = Date.now();
+    const isInSafePeriod = currentTime - gameStartTime < safeStartPeriod;
+    
+    // Проверяем проигрыш только если прошел безопасный период
+    if (!isInSafePeriod && platforms.length >= 2) {
+        // Сортируем платформы по высоте (снизу вверх)
+        const sortedPlatforms = [...platforms].sort((a, b) => b.y - a.y);
+        
+        // Берем вторую снизу платформу
+        const secondLowestPlatform = sortedPlatforms[1];
+        
+        // Если игрок ниже второй снизу платформы, считаем игру проигранной
+        if (player.y > secondLowestPlatform.y + 50) {
+            gameOver = true;
+            
+            // Сохраняем текущий счет
+            const currentScore = score;
+            
+            // Вызываем функцию показа красивого окна
+            showGameOverScreen(currentScore);
+        }
     }
     
     requestAnimationFrame(gameLoop);
@@ -371,4 +952,16 @@ function getCategory(score) {
     if (score < 3000) return 'Well you a monster';
     if (score < 3500) return 'A BOT?';
     return 'LEGEND';
+}
+
+// Добавляем функцию для определения уровня сложности
+function getDifficultyLevel(score) {
+    if (score < 500) return 1;
+    if (score < 1000) return 2;
+    if (score < 1500) return 3;
+    if (score < 2000) return 4;
+    if (score < 2500) return 5;
+    if (score < 3000) return 6;
+    if (score < 3500) return 7;
+    return 8;
 } 
