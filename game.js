@@ -1,7 +1,6 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreElement = document.getElementById('scoreValue');
-const leaderboardBtn = document.getElementById('leaderboardBtn');
 const leaderboard = document.getElementById('leaderboard');
 const closeLeaderboard = document.getElementById('closeLeaderboard');
 const leaderboardList = document.getElementById('leaderboardList');
@@ -21,6 +20,14 @@ let gameStartTime = 0; // Время начала игры
 let safeStartPeriod = 3000; // Безопасный период в начале игры (3 секунды)
 let baseSpeed = 4; // Базовая скорость игрока
 let speedIncrement = 0.25; // Увеличение скорости при каждом прыжке - увеличено с 0.15
+
+// Переменные для системы delta time
+let lastFrameTime = 0; // Время последнего кадра
+let deltaTime = 0; // Разница во времени между кадрами в секундах
+const targetFPS = 60; // Целевой FPS для нормализации
+const timeStep = 1000 / targetFPS; // Идеальный временной шаг (в мс)
+const baseMoveSpeed = 240; // Базовая скорость движения в пикселях в секунду
+const canvasRefWidth = 800; // Эталонная ширина канваса для нормализации скорости
 
 // Загружаем изображение для персонажа
 const playerImg = new Image();
@@ -61,8 +68,9 @@ class Player {
     }
 
     update() {
-        this.velocityY += this.gravity;
-        this.y += this.velocityY;
+        // Применяем физику с учетом delta time
+        this.velocityY += this.gravity * deltaTime * targetFPS;
+        this.y += this.velocityY * deltaTime * targetFPS;
         this.x += this.velocityX;
 
         // Добавляем эффект экранной петли: когда игрок выходит за правый край, он появляется слева и наоборот
@@ -83,11 +91,15 @@ class Player {
     }
 
     moveLeft() {
-        this.velocityX = -this.speed * this.movementMultiplier; // Применяем множитель для более резкого движения
+        // Нормализуем скорость с учетом delta time и размера канваса
+        const speedFactor = (canvas.width / canvasRefWidth) * deltaTime;
+        this.velocityX = -baseMoveSpeed * speedFactor;
     }
 
     moveRight() {
-        this.velocityX = this.speed * this.movementMultiplier; // Применяем множитель для более резкого движения
+        // Нормализуем скорость с учетом delta time и размера канваса
+        const speedFactor = (canvas.width / canvasRefWidth) * deltaTime;
+        this.velocityX = baseMoveSpeed * speedFactor;
     }
 
     stop() {
@@ -563,19 +575,11 @@ if (leftBtn && rightBtn) {
     });
 }
 
-// Обработка кликов по кнопкам
-leaderboardBtn.addEventListener('click', () => {
-    leaderboard.classList.remove('hidden');
-    updateLeaderboard();
-    paused = true;
-    showPauseOverlay();
-});
+// Обработка кликов по кнопкам, обработчик будет добавлен в window.addEventListener('DOMContentLoaded')
 
-closeLeaderboard.addEventListener('click', () => {
-    leaderboard.classList.add('hidden');
-    paused = false;
-    hidePauseOverlay();
-});
+// Обработка кликов по кнопкам будет добавлена в window.addEventListener('DOMContentLoaded')
+
+// Эти обработчики были перемещены в DOMContentLoaded
 
 // Функция обновления таблицы лидеров
 function updateLeaderboard() {
@@ -827,28 +831,30 @@ function saveScore() {
     saveLeaderboardRecords(records);
 }
 
+// Функция для отображения меню ввода ника
 function showNameMenu() {
     const nameMenu = document.getElementById('nameMenu');
     if (nameMenu) nameMenu.style.display = 'flex';
-    // document.getElementById('startOverlay').style.display = 'none';
-    const gameContainer = document.querySelector('.game-container');
-    if (gameContainer) gameContainer.style.filter = 'blur(2px)';
+    // Убираем размытие для лучшего вида в игровом контейнере
+    // const gameContainer = document.querySelector('.game-container');
+    // if (gameContainer) gameContainer.style.filter = 'blur(2px)';
     const playerNameInput = document.getElementById('playerNameInput');
     if (playerNameInput) {
         playerNameInput.value = playerName;
         playerNameInput.focus();
     }
 }
+
+// Функция для скрытия меню ввода ника
 function hideNameMenu() {
     document.getElementById('nameMenu').style.display = 'none';
-    document.querySelector('.game-container').style.filter = ''; // Убираем размытие при закрытии меню
 }
+
 function showStartBtn() {
     document.getElementById('startBtn').style.display = 'inline-block';
 }
 function hideStartBtn() {
     document.getElementById('startBtn').style.display = 'none';
-    document.querySelector('.game-container').style.filter = '';
 }
 function saveName() {
     console.log('saveName called');
@@ -864,7 +870,6 @@ function saveName() {
 }
 function startGame() {
     hideStartBtn();
-    document.querySelector('.game-container').style.filter = '';
     gameStarted = true;
     gameStartTime = Date.now(); // Запоминаем время начала игры
 }
@@ -900,6 +905,27 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startBtn').onclick = startGame;
     document.getElementById('resumeBtn').onclick = () => { paused = false; hidePauseOverlay(); };
     document.getElementById('restartBtn').onclick = restartGame;
+    
+    // Добавляем обработчик клика для блока Simple Controls
+    document.getElementById('controlsFeature').addEventListener('click', () => {
+        // Прокручиваем страницу к игровому контейнеру
+        document.querySelector('.game-container').scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    // Обработчик для блока лидерборда
+    document.getElementById('leaderboardFeature').addEventListener('click', () => {
+        leaderboard.classList.remove('hidden');
+        updateLeaderboard();
+        paused = true;
+        showPauseOverlay();
+    });
+    
+    // Обработчик для закрытия лидерборда
+    document.getElementById('closeLeaderboard').addEventListener('click', () => {
+        leaderboard.classList.add('hidden');
+        paused = false;
+        hidePauseOverlay();
+    });
     
     // Also add touch event listener for start button 
     document.getElementById('startBtn').addEventListener('touchstart', (e) => {
@@ -994,7 +1020,15 @@ function restartGame() {
 }
 
 // Игровой цикл
-function gameLoop() {
+function gameLoop(timestamp) {
+    // Вычисляем delta time
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    deltaTime = (timestamp - lastFrameTime) / 1000; // Преобразуем в секунды
+    lastFrameTime = timestamp;
+    
+    // Ограничиваем deltaTime для избежания скачков при низком FPS
+    if (deltaTime > 0.2) deltaTime = 0.2; 
+    
     if (!isGameActive()) {
         requestAnimationFrame(gameLoop);
         return;
@@ -1013,20 +1047,23 @@ function gameLoop() {
     // Определяем текущий уровень сложности
     const difficultyLevel = getDifficultyLevel(score);
     
-    // Увеличиваем гравитацию с уровнем сложности, но не так сильно как раньше
-    player.gravity = 0.1 + (difficultyLevel * 0.01); // Возвращаем к оригинальному значению
+    // Увеличиваем гравитацию с уровнем сложности, с учетом delta time
+    player.gravity = (0.1 + (difficultyLevel * 0.01)) / (targetFPS * deltaTime);
     
     // Корректируем силу прыжка, делаем её больше для компенсации увеличения скорости
     player.jumpForce = -10 + (difficultyLevel * 0.18); // Более плавная настройка силы прыжка
     
-    // Уменьшаем скорость игрока с ростом сложности
-    player.speed = Math.max(2, 4 - (difficultyLevel * 0.3)); // Без изменений, оставляем как есть
+    // Уменьшаем скорость игрока с ростом сложности - с учетом delta time
+    const normalizedSpeed = baseMoveSpeed * (deltaTime * targetFPS);
+    player.speed = Math.max(normalizedSpeed * 0.5, normalizedSpeed * (1 - (difficultyLevel * 0.07)));
     
-    // Добавляем эффект "дрожания" платформ для высоких уровней
+    // Добавляем эффект "дрожания" платформ для высоких уровней с учетом delta time
     if (difficultyLevel > 4) {
         platforms.forEach(platform => {
-            if (Math.random() > 0.95) { // Увеличиваем вероятность с 0.98 до 0.95
-                platform.x += (Math.random() - 0.5) * (difficultyLevel - 3) * 1.5; // Усиливаем дрожание в 1.5 раза
+            // Уменьшаем вероятность в зависимости от delta time, чтобы эффект был одинаковым на разных FPS
+            if (Math.random() > (0.95 + deltaTime * 0.05)) { 
+                const shakeFactor = (Math.random() - 0.5) * (difficultyLevel - 3) * 1.5 * deltaTime * targetFPS;
+                platform.x += shakeFactor;
                 // Ограничиваем движение платформы в пределах экрана
                 platform.x = Math.max(0, Math.min(canvas.width - platform.width, platform.x));
             }
@@ -1095,7 +1132,7 @@ function gameLoop() {
 
 // Запуск игры
 createInitialPlatforms();
-gameLoop();
+requestAnimationFrame(gameLoop);
 
 function getCategory(score) {
     if (score < 500) return 'Aprove?';

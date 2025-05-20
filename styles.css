@@ -2,6 +2,7 @@ body {
     margin: 0;
     padding: 0;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
@@ -20,6 +21,8 @@ body {
     height: 600px;
     max-width: 100%;
     max-height: 100vh;
+    margin: 30px 0;
+    overflow: hidden;
 }
 
 canvas {
@@ -56,8 +59,9 @@ canvas {
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.3s;
-    margin-right: 60px;
     z-index: 5;
+    flex-shrink: 0;
+    min-width: 120px;
 }
 
 #leaderboardBtn:hover {
@@ -117,28 +121,7 @@ canvas {
 }
 
 .top-bar {
-    position: absolute;
-    top: 20px;
-    right: 40px;
-    display: flex;
-    align-items: flex-start;
-    flex-direction: row-reverse;
-    z-index: 10;
-    gap: 0;
-}
-
-#playerNameDisplay {
-    color: #fff;
-    font-size: 18px;
-    background: rgba(0,0,0,0.1);
-    padding: 6px 16px;
-    border-radius: 6px;
-    margin-left: 0;
-    margin-top: 16px;
-    text-align: right;
-    white-space: nowrap;
-    overflow: visible;
-    max-width: none;
+    display: none;
 }
 
 #leaderboardBtn {
@@ -675,40 +658,44 @@ canvas {
 
 /* Стили для секции описания игры */
 .game-description {
-    background: linear-gradient(180deg, #2d1b4d 0%, #40277a 100%);
-    padding: 50px 20px;
-    color: #fff;
+    width: 100%;
+    max-width: 1200px;
+    text-align: center;
+    margin-bottom: 0;
+    padding: 20px;
 }
 
 .description-container {
-    max-width: 900px;
+    max-width: 1000px;
     margin: 0 auto;
+    text-align: center;
 }
 
 .game-description h1 {
     font-size: 48px;
-    text-align: center;
-    margin-bottom: 20px;
     color: #fff;
+    margin-bottom: 15px;
     text-shadow: 0 0 15px rgba(138, 79, 255, 0.7);
+    text-align: center;
 }
 
 .subtitle {
     font-size: 20px;
-    text-align: center;
-    margin-bottom: 50px;
-    color: rgba(255, 255, 255, 0.9);
-    max-width: 700px;
+    color: #ddd;
+    margin-bottom: 40px;
+    max-width: 800px;
     margin-left: auto;
     margin-right: auto;
+    text-align: center;
 }
 
 /* Стили для блоков с функциями */
 .features {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 50px;
     flex-wrap: wrap;
-    margin-bottom: 60px;
 }
 
 .feature {
@@ -747,7 +734,11 @@ canvas {
 
 /* Стиль для блока "Как это работает" */
 .how-it-works {
-    margin-top: 70px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    text-align: center;
 }
 
 .how-it-works h2 {
@@ -923,4 +914,71 @@ canvas {
     .benefits h2 {
         font-size: 28px;
     }
+}
+
+/* Стили для меню ввода ника внутри игрового контейнера */
+.menu-overlay-game {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(45,27,77,0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    width: 300px;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.menu-overlay-game h1 {
+    color: #fff;
+    margin-bottom: 24px;
+    text-align: center;
+    font-size: 24px;
+}
+
+/* Стили для кнопки лидерборда в блоке features */
+#leaderboardFeature #leaderboardBtn {
+    position: static;
+    margin-top: 15px;
+    background-color: #8a4fff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    padding: 8px 20px;
+    display: inline-block;
+}
+
+#leaderboardFeature #leaderboardBtn:hover {
+    background-color: #6b3fd9;
+    transform: scale(1.05);
+}
+
+/* Стили для блока features с интерактивностью */
+#controlsFeature {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#controlsFeature:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+}
+
+#leaderboardFeature {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#leaderboardFeature:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+    background: rgba(138, 79, 255, 0.15);
 } 

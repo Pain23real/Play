@@ -10,15 +10,35 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="top-bar">
-        <button id="leaderboardBtn">Leaderboard</button>
+    <!-- Заголовок и описание -->
+    <div class="game-description">
+        <div class="description-container">
+            <h1>The Secret Jump</h1>
+            <p class="subtitle">An exciting platformer game with a purple theme where you jump on umbrellas and collect points!</p>
+            
+            <div class="features">
+                <div class="feature" id="controlsFeature">
+                    <span class="feature-icon">🎮</span>
+                    <h3>Simple Controls</h3>
+                    <p>Use arrow keys for movement and touch screen for mobile gaming</p>
+                </div>
+                <div class="feature" id="leaderboardFeature">
+                    <span class="feature-icon">🏆</span>
+                    <h3>Leaderboard</h3>
+                    <p>Compete with other players and climb the rankings</p>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="nameMenu" class="menu-overlay">
-        <h1>Enter your nickname</h1>
-        <input type="text" id="playerNameInput" placeholder="Your nickname" maxlength="16">
-        <button id="saveNameBtn">Save</button>
-    </div>
+
+    <!-- Игровой контейнер -->
     <div class="game-container">
+        <!-- Меню ввода ника внутри игрового контейнера -->
+        <div id="nameMenu" class="menu-overlay-game">
+            <h1>Enter your nickname</h1>
+            <input type="text" id="playerNameInput" placeholder="Your nickname" maxlength="16">
+            <button id="saveNameBtn">Save</button>
+        </div>
         <button id="startBtn" style="display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:20;">Start Game</button>
         <canvas id="gameCanvas"></canvas>
         <div class="score">Score: <span id="scoreValue">0</span></div>
@@ -39,6 +59,7 @@
             <div class="mobile-btn" id="rightBtn">→</div>
         </div>
     </div>
+    
     <div id="leaderboard" class="hidden">
         <h2>Leaderboard</h2>
         <div class="leaderboard-table-wrapper">
@@ -57,105 +78,80 @@
         <button id="closeLeaderboard">Close</button>
     </div>
     
-    <!-- Game Description Section -->
-    <div class="game-description">
-        <div class="description-container">
-            <h1>The Secret Jump</h1>
-            <p class="subtitle">An exciting platformer game with a purple theme where you jump on umbrellas and collect points!</p>
-            
-            <div class="features">
-                <div class="feature">
-                    <span class="feature-icon">🎮</span>
-                    <h3>Simple Controls</h3>
-                    <p>Use arrow keys for movement and touch screen for mobile gaming</p>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">🏆</span>
-                    <h3>Leaderboard</h3>
-                    <p>Compete with other players and climb the rankings</p>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">📱</span>
-                    <h3>Mobile Support</h3>
-                    <p>Play on any device with a convenient adaptive interface</p>
-                </div>
+    <!-- How to Play Section -->
+    <div class="how-it-works">
+        <h2>How to Play The Secret Jump</h2>
+        <div class="dark-box">
+            <p>In The Secret Jump, you control a character who must jump on umbrellas to climb as high as possible. The higher you climb, the more points you earn!</p>
+        </div>
+        
+        <div class="steps">
+            <div class="step">
+                <span class="step-number">1</span>
+                <h3>Start the Game</h3>
+                <p>Enter your nickname and press the "Start Game" button to begin the adventure</p>
             </div>
             
-            <div class="how-it-works">
-                <h2>How to Play The Secret Jump</h2>
-                <div class="dark-box">
-                    <p>In The Secret Jump, you control a character who must jump on umbrellas to climb as high as possible. The higher you climb, the more points you earn!</p>
-                </div>
-                
-                <div class="steps">
-                    <div class="step">
-                        <span class="step-number">1</span>
-                        <h3>Start the Game</h3>
-                        <p>Enter your nickname and press the "Start Game" button to begin the adventure</p>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">2</span>
-                        <h3>Jump on Umbrellas</h3>
-                        <p>Use arrow keys (or touch buttons) to move left and right</p>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">3</span>
-                        <h3>Difficulty Levels</h3>
-                        <p>The higher you climb, the more difficult the game becomes and the higher your level</p>
-                    </div>
-                    
-                    <div class="step">
-                        <span class="step-number">4</span>
-                        <h3>Records Table</h3>
-                        <p>Your result is recorded in the leaderboard where you can see your rank among other players</p>
-                    </div>
-                </div>
-                
-                <div class="benefits">
-                    <h2>Game Features</h2>
-                    
-                    <ul class="benefits-list">
-                        <li>
-                            <span class="benefit-icon">🎯</span>
-                            <div class="benefit-text">
-                                <h3>Different Types of Umbrellas</h3>
-                                <p>Encounter regular, broken, temporary, and moving umbrellas</p>
-                            </div>
-                        </li>
-                        
-                        <li>
-                            <span class="benefit-icon">⚡</span>
-                            <div class="benefit-text">
-                                <h3>Increasing Difficulty</h3>
-                                <p>The speed and complexity of the game increase as you progress</p>
-                            </div>
-                        </li>
-                        
-                        <li>
-                            <span class="benefit-icon">🔍</span>
-                            <div class="benefit-text">
-                                <h3>Category System</h3>
-                                <p>Earn unique titles based on your score</p>
-                            </div>
-                        </li>
-                        
-                        <li>
-                            <span class="benefit-icon">🔄</span>
-                            <div class="benefit-text">
-                                <h3>Endless Gameplay</h3>
-                                <p>The game continues until you fall too low</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
+            <div class="step">
+                <span class="step-number">2</span>
+                <h3>Jump on Umbrellas</h3>
+                <p>Use arrow keys (or touch buttons) to move left and right</p>
             </div>
             
-            <div class="game-footer">
-                <p>Test your skills in The Secret Jump right now!</p>
+            <div class="step">
+                <span class="step-number">3</span>
+                <h3>Difficulty Levels</h3>
+                <p>The higher you climb, the more difficult the game becomes and the higher your level</p>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">4</span>
+                <h3>Records Table</h3>
+                <p>Your result is recorded in the leaderboard where you can see your rank among other players</p>
             </div>
         </div>
+        
+        <div class="benefits">
+            <h2>Game Features</h2>
+            
+            <ul class="benefits-list">
+                <li>
+                    <span class="benefit-icon">🎯</span>
+                    <div class="benefit-text">
+                        <h3>Different Types of Umbrellas</h3>
+                        <p>Encounter regular, broken, temporary, and moving umbrellas</p>
+                    </div>
+                </li>
+                
+                <li>
+                    <span class="benefit-icon">⚡</span>
+                    <div class="benefit-text">
+                        <h3>Increasing Difficulty</h3>
+                        <p>The speed and complexity of the game increase as you progress</p>
+                    </div>
+                </li>
+                
+                <li>
+                    <span class="benefit-icon">🔍</span>
+                    <div class="benefit-text">
+                        <h3>Category System</h3>
+                        <p>Earn unique titles based on your score</p>
+                    </div>
+                </li>
+                
+                <li>
+                    <span class="benefit-icon">🔄</span>
+                    <div class="benefit-text">
+                        <h3>Endless Gameplay</h3>
+                        <p>The game continues until you fall too low</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="game-footer">
+        <p>Test your skills in The Secret Jump right now!</p>
     </div>
     
     <div class="author-info">Created by Oiratos</div>
